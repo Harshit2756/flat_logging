@@ -4,8 +4,8 @@ import 'package:flat_logging/app/models/user_tiffin_entry.dart';
 import 'package:flat_logging/app/repository/user_repository.dart';
 import 'package:flat_logging/app/views/tiffin/repository/tiffin_repository.dart';
 import 'package:flat_logging/core/routes/route_name.dart';
+import 'package:flat_logging/core/utils/helpers/date_helper.dart';
 import 'package:flat_logging/core/utils/helpers/helper_functions.dart';
-import 'package:flat_logging/core/utils/helpers/logger.dart';
 import 'package:flat_logging/core/widgets/snackbar/snackbars.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart' hide FormData, MultipartFile;
@@ -52,13 +52,12 @@ class TiffinController extends GetxController {
       }
 
       final users = await _userRepository.getAllUsers();
-      HLoggerHelper.debug('$users');
+
       allUsers.value = users;
 
       // Initialize user tiffin entries
       _initializeUserTiffinEntries(users);
     } catch (e) {
-      HLoggerHelper.error('Error loading users: $e');
       hasError.value = true;
       errorMessage.value = e.toString();
     }
@@ -148,9 +147,7 @@ class TiffinController extends GetxController {
       final quantities = getAllUserQuantities();
       final totalQuantity = quantities.values.fold(0.0, (sum, qty) => sum + qty);
 
-      if ((totalQuantity - totalTiffinsCount.value).abs() > 0.01) {
-        HLoggerHelper.warning('Total calculated: $totalQuantity, Expected: ${totalTiffinsCount.value}');
-      }
+      if ((totalQuantity - totalTiffinsCount.value).abs() > 0.01) {}
 
       // Add each selected entry with calculated shares
       int successCount = 0;
@@ -159,7 +156,7 @@ class TiffinController extends GetxController {
 
         final tiffin = TiffinModel(
           id: HHelperFunctions.generateUniqueId(prefix: entry.user.name),
-          date: entry.date,
+          date: DateHelper.convertToGsheetFormat(entry.date),
           user: entry.user.name,
           quantity: calculatedQuantity, // Store the calculated split shares
         );
@@ -179,7 +176,6 @@ class TiffinController extends GetxController {
         throw Exception('Failed to add some tiffin entries');
       }
     } catch (e) {
-      HLoggerHelper.error('Error adding Tiffin: $e');
       hasError.value = true;
       errorMessage.value = e.toString();
       HSnackbars.showSnackbar(type: SnackbarType.error, message: 'Failed to add Tiffin: ${e.toString()}');
@@ -231,7 +227,6 @@ class TiffinController extends GetxController {
   void applyFilters() {
     filteredTiffinList.value = allTiffinList.where((tiffin) {
       // Parse date - check which delimiter is used
-      HLoggerHelper.debug('all the values at start of flter: $tiffin');
 
       final dateParts = tiffin.date.contains('-') ? tiffin.date.split('-') : tiffin.date.split('/');
 
@@ -249,8 +244,6 @@ class TiffinController extends GetxController {
       // Filter by user (if selected)
       bool matchesUser = selectedUser.value == null || tiffin.user == selectedUser.value;
 
-      HLoggerHelper.debug('all ${matchesDate && matchesUser}=> $month:$selectedMonth | ${tiffin.user}:$selectedUser ');
-
       return matchesDate && matchesUser;
     }).toList();
 
@@ -264,7 +257,6 @@ class TiffinController extends GetxController {
 
     for (var tiffin in allTiffinList) {
       // Parse date - check which delimiter is used
-      HLoggerHelper.debug('count : $tiffin');
 
       final dateParts = tiffin.date.contains('-') ? tiffin.date.split('-') : tiffin.date.split('/');
 
@@ -276,15 +268,12 @@ class TiffinController extends GetxController {
       if (month == null || year == null) continue;
 
       // Only count if matches selected month/year
-      HLoggerHelper.debug('count for user: ${tiffin.user}');
       if (month == selectedMonth.value && year == selectedYear.value) {
-        HLoggerHelper.debug('true for ${tiffin.user}');
         counts[tiffin.user] = (counts[tiffin.user] ?? 0) + tiffin.quantity;
-        HLoggerHelper.info('Count for ${tiffin.user}: ${counts[tiffin.user]}');
       }
     }
 
-    // HLoggerHelper.info('Final counts: $counts');
+    //
     userMonthlyCounts.value = counts;
   }
 
@@ -328,14 +317,11 @@ class TiffinController extends GetxController {
       }
 
       final tiffins = await _tiffinRepository.getAllTiffin();
-      HLoggerHelper.debug('apply filters called $tiffins ');
 
       allTiffinList.value = tiffins;
-      HLoggerHelper.debug('apply filters called for: $allTiffinList ');
 
       applyFilters();
     } catch (e) {
-      HLoggerHelper.error('Error getting tiffins: $e');
       hasError.value = true;
       errorMessage.value = e.toString();
       HSnackbars.showSnackbar(type: SnackbarType.error, message: 'Failed to load tiffins: ${e.toString()}');
@@ -355,7 +341,6 @@ class TiffinController extends GetxController {
       await _tiffinRepository.refreshData();
       await getAllTiffin(isFromApi: true);
     } catch (e) {
-      HLoggerHelper.error('Error refreshing data: $e');
       hasError.value = true;
       errorMessage.value = e.toString();
       HSnackbars.showSnackbar(type: SnackbarType.error, message: 'Failed to refresh data: ${e.toString()}');
@@ -376,60 +361,6 @@ class TiffinController extends GetxController {
     getAllTiffin();
     loadUsers();
   }
-
-  /// Add Tiffin
-  // Future<void> addTiffin() async {
-  //   if (isLoading.value) return;
-
-  //   isLoading.value = true;
-  //   clearError();
-
-  //   try {
-  //     // Check if service is ready
-  //     if (!_tiffinRepository.isServiceReady) {
-  //       throw Exception('Google Sheets service is not ready. Please try again.');
-  //     }
-
-  //     // Get selected entries with quantity > 0
-  //     final selectedEntries = userTiffinEntries.where((entry) => entry.isSelected && entry.shares > 0).toList();
-
-  //     if (selectedEntries.isEmpty) {
-  //       throw Exception('Please select at least one user with quantity greater than 0');
-  //     }
-
-  //     // Add each selected entry
-  //     int successCount = 0;
-  //     for (final entry in selectedEntries) {
-  //       final tiffin = TiffinModel(
-  //         id: HHelperFunctions.generateUniqueId(prefix: entry.user.name),
-  //         date: entry.date,
-  //         user: entry.user.name,
-  //         quantity: entry.shares,
-  //       );
-
-  //       final success = await _tiffinRepository.addTiffin(tiffin);
-  //       if (success) {
-  //         successCount++;
-  //       }
-  //     }
-
-  //     if (successCount == selectedEntries.length) {
-  //       clearForm();
-  //       Get.back();
-  //       await getAllTiffin();
-  //       HSnackbars.showSnackbar(type: SnackbarType.success, message: 'Successfully added $successCount tiffin entries');
-  //     } else {
-  //       throw Exception('Failed to add some tiffin entries');
-  //     }
-  //   } catch (e) {
-  //     HLoggerHelper.error('Error adding Tiffin: $e');
-  //     hasError.value = true;
-  //     errorMessage.value = e.toString();
-  //     HSnackbars.showSnackbar(type: SnackbarType.error, message: 'Failed to add Tiffin: ${e.toString()}');
-  //   } finally {
-  //     isLoading.value = false;
-  //   }
-  // }
 
   /// Delete Tiffin
   Future<void> deleteTiffin(String id, String user) async {
@@ -452,7 +383,6 @@ class TiffinController extends GetxController {
         throw Exception('Failed to delete Tiffin');
       }
     } catch (e) {
-      HLoggerHelper.error('Error deleting Tiffin: $e');
       hasError.value = true;
       errorMessage.value = e.toString();
       HSnackbars.showSnackbar(type: SnackbarType.error, message: 'Failed to delete Tiffin: ${e.toString()}');
@@ -479,7 +409,6 @@ class TiffinController extends GetxController {
     try {
       return await _tiffinRepository.getTotalCount();
     } catch (e) {
-      HLoggerHelper.error('Error getting total count: $e');
       return 0;
     }
   }

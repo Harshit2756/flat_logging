@@ -2,7 +2,7 @@ import 'package:intl/intl.dart';
 
 class DateHelper {
   static DateTime? excelDateToDateTime(dynamic excelDate) {
-    // HLoggerHelper.info('value excel: $excelDate');
+    //
     try {
       if (excelDate == null) return null;
 
@@ -13,10 +13,29 @@ class DateHelper {
       final DateTime baseDate = DateTime(1899, 12, 30);
 
       // Convert Excel date number to Duration and add to base date
-      // HLoggerHelper.info('value after :${baseDate.add(Duration(days: dateNum.round()))}');
+      //
       return baseDate.add(Duration(days: dateNum.round()));
     } catch (e) {
       return null;
+    }
+  }
+
+  static String convertToGsheetFormat(String date) {
+    try {
+      // Handle both / and - delimiters
+      final dateParts = date.contains('-') ? date.split('-') : date.split('/');
+
+      if (dateParts.length != 3) {
+        throw Exception('Invalid date format');
+      }
+
+      final day = dateParts[0].padLeft(2, '0');
+      final month = dateParts[1].padLeft(2, '0');
+      final year = dateParts[2];
+
+      return '$month-$day-$year'; // MM-dd-yyyy format with hyphens
+    } catch (e) {
+      return date; // Return original if conversion fails
     }
   }
 

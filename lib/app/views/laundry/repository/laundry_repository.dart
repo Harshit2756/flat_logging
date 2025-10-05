@@ -15,10 +15,8 @@ class LaundryRepository extends BaseGoogleSheetsRepository {
   /// Get all laundries
   Future<List<LaundryModel>> getAllLaundry() async {
     final rows = await getAllValues();
-    HLoggerHelper.info('laundries');
-
+    HLoggerHelper.debug('Fetched ${rows.length} laundry records.');
     final laundries = rows.map((row) => LaundryModel.fromList(row)).toList();
-    HLoggerHelper.info('laundries');
     return laundries;
   }
 

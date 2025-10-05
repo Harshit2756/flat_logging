@@ -1,13 +1,21 @@
 import 'package:flat_logging/app/services/google_sheets_service.dart';
 import 'package:flat_logging/app/services/google_sheets_service_manager.dart';
 import 'package:flat_logging/core/utils/constants/enums.dart';
-import 'package:flat_logging/core/utils/helpers/logger.dart';
 import 'package:get/get.dart' hide FormData, MultipartFile;
 
 /// Base repository class for Google Sheets operations
 /// This provides a template for creating repositories for different sheet types
 abstract class BaseGoogleSheetsRepository {
-  final GoogleSheetsServiceManager _serviceManager = Get.find<GoogleSheetsServiceManager>();
+  late final GoogleSheetsServiceManager _serviceManager;
+
+  BaseGoogleSheetsRepository() {
+    // Use Get.find() but check if it's ready first
+    if (Get.isRegistered<GoogleSheetsServiceManager>()) {
+      _serviceManager = Get.find<GoogleSheetsServiceManager>();
+    } else {
+      throw Exception('GoogleSheetsServiceManager not initialized. Please ensure initServices() completes before accessing repositories.');
+    }
+  }
 
   /// Get the specific sheet type for this repository
   SheetType get sheetType;
@@ -22,15 +30,13 @@ abstract class BaseGoogleSheetsRepository {
   Future<List<List<String>>> getAllValues() async {
     try {
       if (!isServiceReady) {
-        HLoggerHelper.error('$sheetType service not ready');
         return [];
       }
 
       final rows = await _service.getAllValues();
-      HLoggerHelper.info('Retrieved ${rows.length} rows from $sheetType sheet');
+
       return rows;
     } catch (e) {
-      HLoggerHelper.error('Error getting all values for $sheetType: $e');
       return [];
     }
   }
@@ -39,21 +45,16 @@ abstract class BaseGoogleSheetsRepository {
   Future<bool> insertRow(List<dynamic> row) async {
     try {
       if (!isServiceReady) {
-        HLoggerHelper.error('$sheetType service not ready');
         return false;
       }
 
       final response = await _service.insertRow(row);
 
       if (response) {
-        HLoggerHelper.info('Row inserted successfully for $sheetType');
-      } else {
-        HLoggerHelper.error('Failed to insert row for $sheetType');
-      }
+      } else {}
 
       return response;
     } catch (e) {
-      HLoggerHelper.error('Error inserting row for $sheetType: $e');
       return false;
     }
   }
@@ -62,21 +63,16 @@ abstract class BaseGoogleSheetsRepository {
   Future<bool> updateRow(int rowIndex, List<dynamic> row) async {
     try {
       if (!isServiceReady) {
-        HLoggerHelper.error('$sheetType service not ready');
         return false;
       }
 
       final response = await _service.updateRow(rowIndex, row);
 
       if (response) {
-        HLoggerHelper.info('Row updated successfully at index $rowIndex for $sheetType');
-      } else {
-        HLoggerHelper.error('Failed to update row at index $rowIndex for $sheetType');
-      }
+      } else {}
 
       return response;
     } catch (e) {
-      HLoggerHelper.error('Error updating row for $sheetType: $e');
       return false;
     }
   }
@@ -85,14 +81,12 @@ abstract class BaseGoogleSheetsRepository {
   Future<bool> deleteRowByIndex(int rowIndex) async {
     try {
       if (!isServiceReady) {
-        HLoggerHelper.error('$sheetType service not ready');
         return false;
       }
 
       final response = await _service.deleteRowByIndex(rowIndex);
       return response;
     } catch (e) {
-      HLoggerHelper.error('Error deleting row for $sheetType: $e');
       return false;
     }
   }
@@ -100,7 +94,6 @@ abstract class BaseGoogleSheetsRepository {
   Future<bool> deleteRowById(String id) async {
     try {
       if (!isServiceReady) {
-        HLoggerHelper.error('$sheetType service not ready');
         return false;
       }
 
@@ -108,7 +101,6 @@ abstract class BaseGoogleSheetsRepository {
 
       return response;
     } catch (e) {
-      HLoggerHelper.error('Error deleting row for $sheetType: $e');
       return false;
     }
   }
@@ -117,7 +109,6 @@ abstract class BaseGoogleSheetsRepository {
   Future<int> getTotalCount() async {
     try {
       if (!isServiceReady) {
-        HLoggerHelper.error('$sheetType service not ready');
         return 0;
       }
 
@@ -125,7 +116,6 @@ abstract class BaseGoogleSheetsRepository {
 
       return count;
     } catch (e) {
-      HLoggerHelper.error('Error getting total count for $sheetType: $e');
       return 0;
     }
   }
@@ -134,9 +124,8 @@ abstract class BaseGoogleSheetsRepository {
   Future<void> refreshData() async {
     try {
       await _serviceManager.refreshService(sheetType);
-      HLoggerHelper.info('Data refreshed successfully for $sheetType');
     } catch (e) {
-      HLoggerHelper.error('Error refreshing data for $sheetType: $e');
+      throw Exception('Failed to refresh data for $sheetType: $e');
     }
   }
 }

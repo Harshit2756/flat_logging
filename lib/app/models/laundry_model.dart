@@ -1,4 +1,5 @@
 import 'package:flat_logging/core/utils/helpers/date_helper.dart';
+import 'package:flat_logging/core/utils/helpers/logger.dart';
 
 class LaundryModel {
   final String id;
@@ -12,7 +13,7 @@ class LaundryModel {
     // Convert Excel date number to readable date
     final dateTime = DateHelper.excelDateToDateTime(row.length > 1 ? row[1] : '');
     final formattedDate = DateHelper.formatDate(dateTime == DateTime(1899, 12, 30) ? null : dateTime);
-
+    HLoggerHelper.debug('LaundryModel.fromList: $row => $formattedDate');
     return LaundryModel(id: row[0], date: row.length > 1 ? formattedDate : '', user: row.length > 2 ? row[2] : '', quantity: row.length > 3 ? num.tryParse(row[3]) ?? 0 : 0);
   }
 

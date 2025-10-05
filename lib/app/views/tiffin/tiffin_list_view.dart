@@ -3,7 +3,6 @@ import 'package:flat_logging/app/views/tiffin/controllers/tiffin_controller.dart
 import 'package:flat_logging/core/theme/theme_extensions.dart';
 import 'package:flat_logging/core/utils/constants/sizes.dart';
 import 'package:flat_logging/core/utils/helpers/date_helper.dart';
-import 'package:flat_logging/core/utils/helpers/logger.dart';
 import 'package:flat_logging/core/utils/media/icons_strings.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart' hide ContextExtensionss;
@@ -221,7 +220,6 @@ class TiffinListView extends StatelessWidget {
                 itemCount: controller.userMonthlyCounts.length,
                 separatorBuilder: (context, index) => const SizedBox(width: HSizes.spacingXS / 2),
                 itemBuilder: (context, index) {
-                  HLoggerHelper.debug('${controller.userMonthlyCounts.entries}');
                   final entry = controller.userMonthlyCounts.entries.elementAt(index);
                   final userName = entry.key;
                   final count = entry.value.toStringAsFixed(2);

@@ -1,5 +1,4 @@
 import 'package:flat_logging/core/utils/constants/enums.dart';
-import 'package:flat_logging/core/utils/helpers/logger.dart';
 import 'package:gsheets/gsheets.dart';
 
 import '../../core/utils/config/google_sheets_config.dart';
@@ -45,13 +44,10 @@ class GoogleSheetsService {
       final firstRow = await _worksheets[sheetType]!.values.row(1);
       if (firstRow.isEmpty) {
         await _worksheets[sheetType]!.values.insertRow(1, headers);
-        HLoggerHelper.info('Created headers for $sheetType worksheet');
       }
 
       _isInitialized = true;
-      HLoggerHelper.info('Google Sheets initialized successfully for $sheetType');
     } catch (e) {
-      HLoggerHelper.error('Error initializing Google Sheets for $sheetType: $e');
       _isInitialized = false;
       rethrow;
     } finally {
@@ -71,7 +67,6 @@ class GoogleSheetsService {
 
       return await spreadsheet.addWorksheet(title);
     } catch (e) {
-      HLoggerHelper.error('Error getting/creating worksheet $title: $e');
       rethrow;
     }
   }
@@ -86,12 +81,10 @@ class GoogleSheetsService {
       }
 
       final rows = await worksheet.values.allRows();
-      HLoggerHelper.info('$rows');
 
       // Skip header row and return data rows
       return rows.isEmpty ? [] : rows.skip(1).toList();
     } catch (e) {
-      HLoggerHelper.error('Error getting all rows for $sheetType: $e');
       return [];
     }
   }
@@ -110,7 +103,6 @@ class GoogleSheetsService {
 
       return true;
     } catch (e) {
-      HLoggerHelper.error('Error inserting row for $sheetType: $e');
       return false;
     }
   }
@@ -129,7 +121,6 @@ class GoogleSheetsService {
 
       return true;
     } catch (e) {
-      HLoggerHelper.error('Error updating row for $sheetType: $e');
       return false;
     }
   }
@@ -148,7 +139,6 @@ class GoogleSheetsService {
 
       return true;
     } catch (e) {
-      HLoggerHelper.error('Error deleting row for $sheetType: $e');
       return false;
     }
   }
@@ -170,7 +160,6 @@ class GoogleSheetsService {
       //
       return true;
     } catch (e) {
-      HLoggerHelper.error('Error deleting row for $sheetType: $e');
       return false;
     }
   }
@@ -189,7 +178,6 @@ class GoogleSheetsService {
 
       return count;
     } catch (e) {
-      HLoggerHelper.error('Error getting total count for $sheetType: $e');
       return 0;
     }
   }
@@ -201,7 +189,7 @@ class GoogleSheetsService {
 
       // Force reload by clearing cache if needed
     } catch (e) {
-      HLoggerHelper.error('Error refreshing sheet for $sheetType: $e');
+      rethrow;
     }
   }
 

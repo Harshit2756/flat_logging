@@ -4,6 +4,7 @@ import 'package:flat_logging/app/models/user_model.dart';
 import 'package:flat_logging/app/repository/user_repository.dart';
 import 'package:flat_logging/app/views/laundry/repository/laundry_repository.dart';
 import 'package:flat_logging/core/routes/route_name.dart';
+import 'package:flat_logging/core/utils/helpers/date_helper.dart';
 import 'package:flat_logging/core/utils/helpers/helper_functions.dart';
 import 'package:flat_logging/core/utils/helpers/logger.dart';
 import 'package:flat_logging/core/widgets/snackbar/snackbars.dart';
@@ -51,13 +52,12 @@ class LaundryController extends GetxController {
       }
 
       final users = await _userRepository.getAllUsers();
-      HLoggerHelper.debug('$users');
+
       allUsers.value = users;
 
       // Initialize user laundry entries
       _initializeUserLaundryEntries(users);
     } catch (e) {
-      HLoggerHelper.error('Error loading users: $e');
       hasError.value = true;
       errorMessage.value = e.toString();
     }
@@ -121,7 +121,6 @@ class LaundryController extends GetxController {
       final day = int.tryParse(dateParts[0]);
       final month = int.tryParse(dateParts[1]);
       final year = int.tryParse(dateParts[2]);
-      // HLoggerHelper.debug('$selectedUser => $month : $selectedMonth | $year : $selectedYear');
 
       if (day == null || month == null || year == null) return false;
 
@@ -153,16 +152,14 @@ class LaundryController extends GetxController {
 
       if (month == null || year == null) continue;
 
-      // HLoggerHelper.info('Processing: ${laundry.user} - Month: $month, Year: $year');
+      //
 
       // Only count if matches selected month/year
       if (month == selectedMonth.value && year == selectedYear.value) {
         counts[laundry.user] = (counts[laundry.user] ?? 0) + laundry.quantity;
-        HLoggerHelper.info('Count for ${laundry.user}: ${counts[laundry.user]}');
       }
     }
 
-    HLoggerHelper.info('Final counts: $counts');
     userMonthlyCounts.value = counts;
   }
 
@@ -194,6 +191,7 @@ class LaundryController extends GetxController {
 
   /// Get All Laundry
   Future<void> getAllLaundry({bool isFromApi = false}) async {
+    print('getAllLaundry called with isFromApi=$isFromApi');
     if (isLoadingList.value) return;
 
     isLoadingList.value = true;
@@ -205,13 +203,14 @@ class LaundryController extends GetxController {
         throw Exception('Google Sheets service is not ready. Please try again.');
       }
 
+      HLoggerHelper.debug('Fetching all laundry records...');
       final laundries = await _laundryRepository.getAllLaundry();
 
+      HLoggerHelper.debug('Fetched $laundries laundry records.');
       allLaundryList.value = laundries;
-      HLoggerHelper.debug('apply filters called $laundries ');
+
       applyFilters(); // Apply filters after loading data
     } catch (e) {
-      HLoggerHelper.error('Error getting laundries: $e');
       hasError.value = true;
       errorMessage.value = e.toString();
       HSnackbars.showSnackbar(type: SnackbarType.error, message: 'Failed to load laundries: ${e.toString()}');
@@ -231,7 +230,6 @@ class LaundryController extends GetxController {
       await _laundryRepository.refreshData();
       await getAllLaundry(isFromApi: true);
     } catch (e) {
-      HLoggerHelper.error('Error refreshing data: $e');
       hasError.value = true;
       errorMessage.value = e.toString();
       HSnackbars.showSnackbar(type: SnackbarType.error, message: 'Failed to refresh data: ${e.toString()}');
@@ -249,6 +247,7 @@ class LaundryController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    print('LaundryController initialized');
     getAllLaundry();
     loadUsers();
   }
@@ -278,7 +277,7 @@ class LaundryController extends GetxController {
       for (final entry in selectedEntries) {
         final laundry = LaundryModel(
           id: HHelperFunctions.generateUniqueId(prefix: entry.user.name),
-          date: entry.date,
+          date: DateHelper.convertToGsheetFormat(entry.date),
           user: entry.user.name,
           quantity: entry.quantity,
         );
@@ -298,7 +297,6 @@ class LaundryController extends GetxController {
         throw Exception('Failed to add some laundry entries');
       }
     } catch (e) {
-      HLoggerHelper.error('Error adding Laundry: $e');
       hasError.value = true;
       errorMessage.value = e.toString();
       HSnackbars.showSnackbar(type: SnackbarType.error, message: 'Failed to add Laundry: ${e.toString()}');
@@ -328,7 +326,6 @@ class LaundryController extends GetxController {
         throw Exception('Failed to delete Laundry');
       }
     } catch (e) {
-      HLoggerHelper.error('Error deleting Laundry: $e');
       hasError.value = true;
       errorMessage.value = e.toString();
       HSnackbars.showSnackbar(type: SnackbarType.error, message: 'Failed to delete Laundry: ${e.toString()}');
@@ -355,7 +352,6 @@ class LaundryController extends GetxController {
     try {
       return await _laundryRepository.getTotalCount();
     } catch (e) {
-      HLoggerHelper.error('Error getting total count: $e');
       return 0;
     }
   }
