@@ -9,6 +9,7 @@ import 'package:flat_logging/core/utils/helpers/helper_functions.dart';
 import 'package:flat_logging/core/widgets/snackbar/snackbars.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart' hide FormData, MultipartFile;
+import 'package:intl/intl.dart';
 
 class TiffinController extends GetxController {
   static TiffinController get instance => Get.find();
@@ -70,16 +71,7 @@ class TiffinController extends GetxController {
     final today = DateTime.now();
     final formattedDate = '${today.day.toString().padLeft(2, '0')}/${today.month.toString().padLeft(2, '0')}/${today.year}';
 
-    userTiffinEntries.value = users
-        .map(
-          (user) => UserTiffinEntry(
-            user: user,
-            date: formattedDate,
-            shares: 1, // Default to 1 share instead of 0
-            isSelected: false,
-          ),
-        )
-        .toList();
+    userTiffinEntries.value = users.map((user) => UserTiffinEntry(user: user, date: formattedDate, shares: 1, isSelected: false)).toList();
   }
 
   /// Set total tiffins count
@@ -247,8 +239,37 @@ class TiffinController extends GetxController {
       return matchesDate && matchesUser;
     }).toList();
 
+    // Sort by date descending (latest first)
+    filteredTiffinList.sort((a, b) {
+      final da = _parseDate(a.date);
+      final db = _parseDate(b.date);
+
+      if (da == null && db == null) return 0;
+      if (da == null) return 1;
+      if (db == null) return -1;
+      return db.compareTo(da);
+    });
+
     // Calculate monthly counts per user
     calculateUserMonthlyCounts();
+  }
+
+  DateTime? _parseDate(String? date) {
+    if (date == null || date.isEmpty) return null;
+    try {
+      // Try common formats
+      final formats = ['dd-MM-yyyy', 'dd/MM/yyyy', 'MM-dd-yyyy', "yyyy-MM-dd"];
+      for (final f in formats) {
+        try {
+          return DateFormat(f).parseStrict(date);
+        } catch (_) {}
+      }
+
+      // Fallback
+      return DateTime.tryParse(date);
+    } catch (e) {
+      return null;
+    }
   }
 
   /// Calculate total count for each user in selected month

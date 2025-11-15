@@ -6,7 +6,7 @@ class UserTiffinEntry {
   final int shares;
   final bool isSelected;
 
-  UserTiffinEntry({required this.user, required this.date, required this.shares, this.isSelected = false});
+  UserTiffinEntry({required this.user, required this.date, this.shares = 1, this.isSelected = false});
 
   UserTiffinEntry copyWith({UserModel? user, String? date, int? quantity, bool? isSelected}) {
     return UserTiffinEntry(user: user ?? this.user, date: date ?? this.date, shares: quantity ?? shares, isSelected: isSelected ?? this.isSelected);
@@ -32,5 +32,4 @@ class UserTiffinEntry {
   int get hashCode {
     return user.hashCode ^ date.hashCode ^ shares.hashCode ^ isSelected.hashCode;
   }
-
 }

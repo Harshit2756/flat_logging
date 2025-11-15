@@ -7,13 +7,25 @@ import 'package:flat_logging/core/utils/media/icons_strings.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart' hide ContextExtensionss;
 
-class TiffinListView extends StatelessWidget {
+class TiffinListView extends StatefulWidget {
   const TiffinListView({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final controller = Get.put(TiffinController());
+  State<TiffinListView> createState() => _TiffinListViewState();
+}
 
+class _TiffinListViewState extends State<TiffinListView> {
+  late final TiffinController controller;
+  bool _expanded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    controller = Get.put(TiffinController());
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Tiffin List'),
@@ -59,13 +71,38 @@ class TiffinListView extends StatelessWidget {
           // Show data
           return Column(
             children: [
-              // Filter Section
-              _buildFilterSection(context, controller),
+              // Collapsible section containing Filters + Monthly Summary
+              Container(
+                padding: const EdgeInsets.all(HSizes.spacingMD),
+                child: ExpansionTile(
+                  initiallyExpanded: _expanded,
+                  // remove the boarder like change the color of the border
+                  shape: RoundedRectangleBorder(
+                    side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant, width: 1),
+                    borderRadius: BorderRadius.circular(8.0),
+                  ),
+                  collapsedShape: RoundedRectangleBorder(
+                    side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant, width: 1),
+                    borderRadius: BorderRadius.circular(8.0),
+                  ),
+                  onExpansionChanged: (v) => setState(() => _expanded = v),
+                  title: Row(
+                    children: [
+                      const Icon(HIcons.filter),
+                      const SizedBox(width: 8),
+                      Text('Filters & Summary', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+                      const SizedBox(width: 8),
+                    ],
+                  ),
+                  children: [
+                    _buildFilterSection(context, controller),
+                    const SizedBox(height: HSizes.spacingSM),
+                    _buildUserCountsSection(context, controller),
+                    const SizedBox(height: HSizes.spacingSM),
+                  ],
+                ),
+              ),
 
-              // User Monthly Counts Cards
-              _buildUserCountsSection(context, controller),
-
-              // const SizedBox(height: HSizes.spacingSM),
               Divider(),
 
               // Tiffin List
@@ -93,21 +130,27 @@ class TiffinListView extends StatelessWidget {
                         itemCount: controller.filteredTiffinList.length,
                         itemBuilder: (context, index) {
                           final tiffin = controller.filteredTiffinList[index];
-                          return Card(
-                            elevation: HSizes.elevationLevel3,
-                            color: context.colorScheme.primaryContainer,
+                          return Container(
+                            decoration: BoxDecoration(
+                              color: context.colorScheme.surfaceContainerHighest,
+                              borderRadius: BorderRadius.circular(8.0),
+                              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4, offset: const Offset(0, 2))],
+                            ),
                             child: ListTile(
-                              leading: const Icon(Icons.fastfood, size: HSizes.avatarSize),
-                              title: Text(tiffin.user, style: context.textTheme.titleLarge),
-                              subtitle: Text(DateHelper.toReadableDate(tiffin.date)),
+                              style: ListTileStyle.list,
+
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
+                              leading: const Icon(Icons.fastfood, size: HSizes.avatarSize / 2),
+                              title: Text(tiffin.user, style: context.textTheme.titleSmall),
+                              subtitle: Text(DateHelper.toReadableDate(tiffin.date), style: context.textTheme.bodyMedium),
                               trailing: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  Text('Qty: ${tiffin.quantity.toStringAsFixed(2)}', style: context.textTheme.titleLarge),
+                                  Text('Qty: ${tiffin.quantity.toStringAsFixed(2)}', style: context.textTheme.bodyLarge),
                                   const SizedBox(width: 8),
                                   Obx(
                                     () => IconButton(
-                                      icon: controller.isLoading.value ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.delete),
+                                      icon: controller.isLoading.value ? const SizedBox(width: 10, height: 10, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.delete),
                                       onPressed: controller.isLoading.value ? null : () => _showDeleteConfirmation(context, controller, tiffin),
                                     ),
                                   ),
@@ -126,9 +169,8 @@ class TiffinListView extends StatelessWidget {
   }
 
   Widget _buildFilterSection(BuildContext context, TiffinController controller) {
-    return Container(
+    return Padding(
       padding: const EdgeInsets.all(HSizes.spacingMD),
-      color: Theme.of(context).colorScheme.surface,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -136,7 +178,7 @@ class TiffinListView extends StatelessWidget {
             children: [
               Text('Filters', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
               const Spacer(),
-              TextButton.icon(onPressed: controller.resetFilters, icon: const Icon(Icons.clear, size: 18), label: const Text('Reset')),
+              TextButton.icon(onPressed: controller.resetFilters, icon: const Icon(Icons.reset_tv_sharp, size: 18), label: const Text('Reset')),
             ],
           ),
           const SizedBox(height: HSizes.spacingSM),
@@ -144,6 +186,7 @@ class TiffinListView extends StatelessWidget {
             children: [
               // Month Dropdown
               Expanded(
+                flex: 2,
                 child: Obx(
                   () => DropdownButtonFormField<int>(
                     initialValue: controller.selectedMonth.value,
@@ -177,21 +220,7 @@ class TiffinListView extends StatelessWidget {
               ),
             ],
           ),
-          // const SizedBox(height: HSizes.spacingSM),
-          // // User Filter Dropdown
-          // Obx(
-          //   () => DropdownButtonFormField<String?>(
-          //     initialValue: controller.selectedUser.value,
-          //     decoration: const InputDecoration(labelText: 'Filter by User', border: OutlineInputBorder(), contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8)),
-          //     items: [
-          //       const DropdownMenuItem(value: null, child: Text('All Users')),
-          //       ...controller.allUsers.map((user) {
-          //         return DropdownMenuItem(value: user.name, child: Text(user.name));
-          //       }),
-          //     ],
-          //     onChanged: (value) => controller.updateUserFilter(value),
-          //   ),
-          // ),
+          const SizedBox(height: HSizes.spacingSM),
         ],
       ),
     );
@@ -209,7 +238,7 @@ class TiffinListView extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Monthly Summary - ${controller.getMonthName(controller.selectedMonth.value)} ${controller.selectedYear.value}',
+              '${controller.getMonthName(controller.selectedMonth.value)} ${controller.selectedYear.value} Total is: ${controller.userMonthlyCounts.values.fold<num>(0, (prev, el) => prev + el).toStringAsFixed(2)} ',
               style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: HSizes.spacingSM),
